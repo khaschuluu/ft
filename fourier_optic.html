@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фурье оптик</title>
+    <style>
+        canvas {
+            border: 1px solid lightgrey;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Онлайн фурье оптик</h1>
+
+    <p>Зургийг 2 хэмжээст фурье хувиргалт (2D fourier transform) хийсэнээр зургийн давтамжуудыг олно. Сонгосон давтмажуудаа хасч урвуу фурье хувиргалт (inverse fourier transform) хийсэнээр анхны зурагнаас тухайн давтамжуудыг хассан үр дүн гардаг. Үүнийг фурье оптик (fourier optic) гэнэ.</p>
+    <p>Цэгэн гэрлийн үүсгүүр, цуглуулагч линз ашиглан компьтер ашиглалгүй хийж болдог. Зургийг бүрсийлгэх, ирмэг олох зэрэг боловсруулалтуудыг фурье оптик ашиглан хийдэг. Мөн JPEG, MP4 форматууд файлын хэмжээг багасгаж шахахдаа ашигладаг.</p>
+
+    <h2>Заавар:</h2>
+    <ul>
+        <li>Хүссэн зургаа "Оролт" хэсэг дээр зурах, эсвэл оруулж болно.</li>
+        <li>Үр дүн "Фурье хувиргалт" хэсэгт гарч ирнэ. Түүн дээр хүссэнээрээ зурах маягаар хасч болно.</li>
+        <li>Үр дүнг хассан зурагтай нийлүүлэн урвуу хувиргалт хийсэн үр дүн "Уурвуу фурье хувиргалт" хэсэгт гарч ирэх болно.</li>
+    </ul>
+
+    <lable for="image">Зураг оруулах:</lable>
+    <input id="image" type="file" /><br />
+
+    <table>
+        <tr>
+            <td>
+                Оролт
+            </td>
+            <td>
+                Фурье хувиргалт (амплитуд)
+            </td>
+            <td>
+                Урвуу фурье хувиргалт
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <canvas id="input"></canvas>
+            </td>
+            <td>
+                <span style="position: relative; vertical-align: top;">
+                    <canvas id="fft" style="vertical-align: top;"></canvas>
+                    <canvas id="fftmask" style="position: absolute; top: 0; left: 0;"></canvas>
+                </span>
+            </td>
+            <td>
+                <canvas id="ifft"></canvas>
+            </td>
+        </tr>
+    </table>
+
+    <h2>Хэрэглээ:</h2>
+    <p>Үр дүнгийн захын хэсгүүдийг хассанаар (high pass) зургийн нарийн дитайл хэсгүүдийг хасч, бүрсийлгэх, хэмжээг багасгана.</p>
+    <p>Үр дүнгийн голын хэсгүүдийг хассанаар (low pass) зургийн зөвхөн ирмэг хэсгүүдийг ялган харна.</p>
+    <p>Үр дүнгийн хүссэн хэсгийг хассанаар харгалзах давтамжууд зургаас хасагдана. Жишээ нь давтамжтай статик шуум дарах.</p>
+
+    <h2>Хөгжүүлэгчдэд:</h2>
+    <p>Эх код дотор тайлбар оруулсан байгаа.</p>
+    <a href="https://github.com/khaschuluu/ft">Нээлттэй хөгжүүлэлт</a><br >
+
+    <a href="spectrogram.html">Спектрограм</a>
+
+    <script src="fft.js"></script>
+    <script>
+        // 2D квадрат зурагны талын урт
+        // 2^n байх ёстой
+        const size = 2**8;
+
+        // FFT хувиргалтын комплекс хариултыг IFFT хийхэд зориулан хадаглах сав
+        let fftResult;
+
+        window.onload = () => {
+            var input = document.querySelector('input#image');
+            input.addEventListener('change', loadImage, false);
+        }
+
+        // Canvas дээр зурахад зориулан үүсгэсэн глобал параметрүүд
+        // Зурж болох canvas бүр дээр үүсгэсэн
+        // Тухайн canvas дээр зурж эхлэх үед true, дуусах үед false
+        let isDrawing = {
+            input: false,
+            fftmask:  false
+        }
+
+        let ctxs = []; // Canvas-уудын контекстууд
+
+        const inputCanvas = document.querySelector('canvas#input');
+        ctxs.input = inputCanvas.getContext('2d');
+
+        const fftCanvas = document.querySelector('canvas#fft');
+        ctxs.fft = fftCanvas.getContext('2d');
+
+        const fftmaskCanvas = document.querySelector('canvas#fftmask');
+        ctxs.fftmask = fftmaskCanvas.getContext('2d');
+
+        const ifftCanvas = document.querySelector('canvas#ifft');
+        ctxs.ifft = ifftCanvas.getContext('2d');
+
+        inputCanvas.width = size;
+        inputCanvas.height = size;
+
+        fftCanvas.width = size;
+        fftCanvas.height = size;
+
+        fftmaskCanvas.width = size;
+        fftmaskCanvas.height = size;
+
+        ifftCanvas.width = size;
+        ifftCanvas.height = size;
+
+        ctxs.input.fillStyle = 'rgb(255, 255, 255)';
+        ctxs.input.fillRect(0, 0, size, size);
+
+
+        // Canvas дээр зурахад зориулсан хэсэг
+        // mouseDown дээр path эхлүүлээд
+        // mouseMove дээр үргэлжлүүлж зураад
+        // mouseUp дээр дуусгаж байна
+        const mouseDownListener = (e) => {
+            let name = e.target.id;
+            let ctx = ctxs[name];
+
+            isDrawing[name] = true;
+
+            ctx.beginPath();
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 5;
+            ctx.moveTo(e.offsetX, e.offsetY);
+        }
+
+        inputCanvas.addEventListener('mousedown', mouseDownListener);
+        fftmaskCanvas.addEventListener('mousedown', mouseDownListener);
+
+        const mouseMoveListener = (e) => {
+            let name = e.target.id;
+            let ctx = ctxs[name];
+
+            if (isDrawing[name] === true) {
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.stroke();
+            }
+        }
+
+        inputCanvas.addEventListener('mousemove', mouseMoveListener);
+        fftmaskCanvas.addEventListener('mousemove', mouseMoveListener);
+
+        const mouseUpListener = (e) => {
+            let name = e.target.id;
+            let ctx = ctxs[name];
+
+            if (isDrawing[name] === true) {
+                isDrawing[name] = false;
+
+                ctx.lineTo(e.offsetX, e.offsety);
+                ctx.stroke();
+                ctx.closePath();
+
+                if (name === 'input') {
+                    FFT2D();
+                } else if (name === 'fftmask') {
+                    IFFT2D();
+                }
+            }
+        }
+
+        inputCanvas.addEventListener('mouseup', mouseUpListener);
+        fftmaskCanvas.addEventListener('mouseup', mouseUpListener);
+
+
+        // Сонгосон зурагийг уншиж input canvas дээр хэвлэх
+        function loadImage(e) {
+            var img = new Image;
+
+            img.onload = () => {
+                ctxs.input.drawImage(img, 0, 0);
+                FFT2D();
+            }
+
+            img.src = URL.createObjectURL(e.target.files[0]);
+        }
+
+        // 2D FFT
+        function FFT2D() {
+            let inputData = ctxs.input.getImageData(0, 0, size, size);
+
+            fftResult = inputData.data
+                // rgba-ээс зөвхөн rgb-г нь авахын тулд a буюу alpha сувгийг нь хасч байна
+                .filter((d, i) => (i + 1) % 4 !== 0)
+
+                // зургийг хар цагаан болгож байна
+                .reduce((result, d, i) => {
+                    // rgb-гээс хамгийн их утгатайг нь авч үлдэнэ
+                    // TODO: Яаж хар цагаан болговол зүгээр вэ?
+                    // жишээ нь дундажлаж болно (r+g+b)/3
+                    result[parseInt(i / 3)] = Math.max(result[parseInt(i / 3)] || 0, d);
+                    return result;
+                }, [])
+
+                // мөр бүрээр нь груплэж байна
+                .reduce((result, d, i) => {
+                    let index = parseInt(i / size);
+                    result[index] = [...result[index] || [], d];
+                    return result;
+                }, [])
+
+
+                // мөр бүр дээр FFT хийж байна
+                .map(FFT)
+
+                // багна бүрээр груплэж байна
+                .reduce((result, row) => {
+                    row.forEach((col, i) => {
+                        result[i] = [...result[i] || [], col];
+                    });
+
+                    return result;
+                }, [])
+
+                // багна бүр дээр FFT хийж байна
+                // ингэснээр 2D FFT маань дуусна
+                .map(FFT);
+            
+
+            // амплитудыг нь авч байна
+            let ampMap = fftResult.map(amps);
+
+            // өнгөөр ялгахын тулд хамгийн их утгыг нь авч байна
+            let max = Math.max(...ampMap.map((data) => Math.max(...data)));
+
+            // өнгөө логарифмын шатлалаар хуваарилахын тулд логарифм хариугаа хэдэд үржүүлэх
+            let power = 255 / Math.log(max);
+
+            // 2D амплитуд зургаа зурах
+            ampMap.forEach((row, y) => {
+                row.forEach((col, x) => {
+                    // өнгөө сонгож байна
+                    // өнгөө логарифмын шатлалаар сонгоно
+                    // учир нь ерөнхий долгионы амплитудууд хэт өндөр тул нарийн долгионууд харгадахгүй
+                    let lum = Math.log(col) * power;
+
+                    ctxs.fft.fillStyle = `rgb(${lum}, ${lum}, ${lum})`;
+
+                    // зургийг талаад баруун болон доош шилжүүлнэ
+                    // учир нь 2D FFT дараа ерөнхий долгионуудын мэдээлэл зах, булангуудруу шахагдсан бдаг
+                    // гэвэл фурье оптикт бол голдоо байх ёстой
+                    ctxs.fft.fillRect((x + size / 2) % size, (y + size / 2) % size, 1, 1);
+                })
+            })
+
+            // шууд үргэлжлүүлээд 2D урвуу фурье хувиргалт хийж байна
+            IFFT2D();
+        }
+
+        // 2D урвуу FFT
+        function IFFT2D() {
+            if (fftResult) {
+                // FFT үр дүн дээр маскаа тавихын тулд эхлээд зурсан маскийг боловсруулна
+                let inputData = ctxs.fftmask.getImageData(0, 0, size, size);
+                inputData.data
+                    // rgba-ээс зөвхөн a буюу alpha-г авна
+                    .filter((d, i) => (i + 1) % 4 === 0)
+
+                    // багнуудаар груплэж бн
+                    .reduce((result, d, i) => {
+                        let index = i % size;
+                        result[index] = [...result[index] || [], d];
+                        return result;
+                    }, [])
+
+                    // FFT үр дүнд маскаа тавьж байна
+                    // TODO: Одоо бол бинари маягаар маск тавьж бн. Хувилж, вектор үржвэрээр олох ёстой.
+                    .forEach((c, i) => {
+                        c.forEach((r, j) => {
+                            if (r) {
+                                fftResult[(j + size/2) % size][(i + size/2) % size] = [0, 0];
+                            }
+                        });
+                    });
+
+                let ifftResult = fftResult
+                    // багна бүр дээр IFFT буюу урвуу фурье хувиргалт хийнэ
+                    .map(IFFT)
+
+                    // мөр бүрээр груплэж бн
+                    .reduce((result, row) => {
+                        row.forEach((col, i) => {
+                            result[i] = [...result[i] || [], col];
+                        });
+
+                        return result;
+                    }, [])
+
+                    // мөр бүр дээр IFFT
+                    .map(IFFT)
+
+                    // амплитудуудыг авна
+                    .map(amps)
+
+                // хамгийн өндөр утгыг өнгө онооход ашиглахаар авч байна
+                let max = Math.max(...ifftResult.map((data) => Math.max(...data)));
+
+                // үр дүнгээ зурах
+                ifftResult.forEach((row, y) => {
+                    row.forEach((col, x) => {
+                        // өнгөө 0-max хүртэлхийг 0-255 хооронд хуваарилна
+                        let lum = col*255/max;
+                        ctxs.ifft.fillStyle = `rgb(${lum}, ${lum}, ${lum})`;
+                        ctxs.ifft.fillRect(x, y, 1, 1);
+                    })
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>
