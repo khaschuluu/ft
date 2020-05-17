@@ -1,67 +1,67 @@
-// Real = Number
-// Imaginary = Number
-// Radian = Number
-// Complex = [Real, Imaginary]
+// Бодит = Тоо 
+// Хуурмаг = Тоо
+// Радиан = Тоо
+// Комплекс = [Бодит, Хуурмаг]
 
-// Complex add.
-// In: a: Complex
-//     b: Complex
-// Out: Complex
+// Комплекс нэмэх
+// Ор: a: Комплекс
+//     b: Комплекс
+// Гар: Комплекс
 const cadd = (a, b) => [a[0] + b[0], a[1] + b[1]];
 
-// Complex subtract.
-// In: a: Complex
-//     b: Complex
-// Out: Complex
+// Комплекс хасах
+// Ор: a: Комплекс
+//     b: Комплекс
+// Гар: Комплекс
 const csub = (a, b) => [a[0] - b[0], a[1] - b[1]];
 
-// Complex multiply.
-// In: a: Complex
-//     b: Complex
-// Out: Complex
+// Комплекс үржих
+// Ор: a: Комплекс
+//     b: Комплекс
+// Гар: Комплекс
 const cmul = (a, b) => [
     a[0]*b[0] - a[1]*b[1],
     a[0]*b[1] + a[1]*b[0]
 ];
 
-// Complex exponential.
-// In: phi: Radian
-// Out: Complex
+// Комплекс экспоненциал
+// Ор: phi: Радиан
+// Гар: Комплекс
 const cexp = (phi) => [
     parseFloat(Math.cos(phi).toFixed(10)),
     parseFloat(Math.sin(phi).toFixed(10))
 ];
 
-// Complex amplitude.
-// In: c: Complex
-// Out: Number
+// Комплекс амплитуд
+// Ор: c: Комплекс
+// Гар: Комплекс
 const camp = (c) => Math.sqrt(c[0]**2 + c[1]**2);
 
-// Complex swap (I don't know right name for that. But it swaps real and imaginary parts).
-// In: c: Complex
-// Out: Complex
+// Комплекс солих (Ямар нэртэйг нь мэдэхгүй юм, ямартай ч комплекс тооны бодит болон хуурмаг утгуудыг хооронд нь солино)
+// Ор: c: Комплекс
+// Гар: Комплекс
 const cswap = (c) => [c[1], c[0]];
 
-// Complex normalize.
-// In: c: Complex
-//     n: Number
-// Out: Complex
+// Комплекс нормалчлал
+// Ор: c: Комплекс
+//     n: Тоо
+// Гар: Комплекс
 const cnorm = (c, n) => [c[0]/n, c[1]/n];
 
-// Complex amplitude with sign.
-// In: c: Complex
-// Out: Number
+// Тэмдэгтэй комплекс амплитуд
+// Ор: c: Комплекс
+// Гар: Тоо
 const scamp = (c) => c[0]/Math.abs(c[0]) * Math.sqrt(c[0]**2 + c[1]**2);
 
-// Fast Fourier Transform.
-// In: x: [Complex|Number]
-// Out: [Complex]
+// Хурдан фурье хувиргалт
+// Ор: x: [Комплекс|Тоо]
+// Гар: [Комплекс]
 const FFT = (x) => {
     let N = x.length;
 
-    // recursion
+    // рекурс функцийн эхлэл
     if (N > 1) {
-        // seperate samples as index is even or odd
+        // оролтыг тэгс сондгойгоор нь ангилах
         let even = [];
         let odd = [];
 
@@ -70,11 +70,11 @@ const FFT = (x) => {
             odd[i] = x[i*2+1];
         }
 
-        // calculate FFT recursively on each seperated samples
+        // ангилсан оролт бүр дээр FFT функцийг дахин хэрэгжүүлэх
         even = FFT(even);
         odd = FFT(odd);
 
-        // main calculation
+        // үндсэн тооцоолол
         for (let k=0; k<parseInt(N/2); k+=1) {
             let t = even[k];
             let exp = cexp(-2*Math.PI*k/N);
@@ -82,11 +82,11 @@ const FFT = (x) => {
             odd[k] = csub(t, cmul(exp, odd[k]));
         }
 
-        // join even and odd samples and return
+        // тэгш сондгойгоор ангилсан үр дүнгүүдийг нэгтгээд буцаах
         return [...even, ...odd];
     } else {
-        // recursion bounce point
-        // convert sample to Complex number when sample is Number
+        // рекурсын буцах цэг
+        // оролтыг комплекс тоо байвал шууд буцаах, үгүй бол комплекс тоо болгоод буцаах
         if (Array.isArray(x[0])) {
             return [x[0]];
         } else {
@@ -95,27 +95,27 @@ const FFT = (x) => {
     }
 }
 
-// Inverse Fast Fourier Transform.
-// In: x: [Complex]
-// Out: [Complex]
+// Урвуу хурдан фурье хувиргалт
+// Ор: x: [Комплекс]
+// Гар: [Комплекс]
 const IFFT = (x) => FFT(x.map(cswap)).map(cswap).map((c) => cnorm(c, x.length));
 
-// Amplitudes.
-// In: x: [Complex]
-// Out: [Number]
+// Амплитудууд
+// Ор: x: [Комплекс]
+// Гар: [Комплекс]
 const amps = (x) => x.map(camp);
 
-// Amplitudes with sign.
-// In: x: [Complex]
-// Out: [Number]
+// Тэмдэгтэй амплитудууд
+// Ор: x: [Комплекс]
+// Гар: [Тоо]
 const samps = (x) => x.map(scamp);
 
-// Frequencies.
-// In: x: [Complex]
-// Out: [Number]
+// Давтамжууд 
+// Ор: x: [Комплекс]
+// Гар: [Тоо]
 const freqs = (x) => x.slice(0, x.length).map((c) => camp(c)*2);
 
-// Export functions as module for node.js.
+// node.js дээр модул болгож дуудсан үед буцаах функцууд
 if (typeof exports !== 'undefined') {
     exports.FFT = FFT;
     exports.FFT = IFFT;
@@ -124,7 +124,7 @@ if (typeof exports !== 'undefined') {
     exports.freqs = freqs;
 }
 
-// example samples
+// жишээ оролтууд
 // const s = [0, 1, 0, -1];
 // const s = [1, 1, 1, 1, 0, 0, 0, 0];
 // const s = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
