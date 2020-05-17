@@ -9,6 +9,10 @@
         canvas {
             border: 1px solid lightgrey;
         }
+
+        table {
+            display: inline-table;
+        }
     </style>
 </head>
 
@@ -33,31 +37,43 @@
             <td>
                 Оролт
             </td>
-            <td>
-                Фурье хувиргалт (амплитуд)
-            </td>
-            <td>
-                Урвуу фурье хувиргалт
-            </td>
         </tr>
         <tr>
             <td>
                 <canvas id="input"></canvas>
             </td>
+        </tr>
+    </table>
+    <table>
+        <tr>
+            <td>
+                Фурье хувиргалт (амплитуд)
+            </td>
+        </tr>
+        <tr>
             <td>
                 <span style="position: relative; vertical-align: top;">
                     <canvas id="fft" style="vertical-align: top;"></canvas>
                     <canvas id="fftmask" style="position: absolute; top: 0; left: 0;"></canvas>
                 </span>
             </td>
+        </tr>
+    </table>
+    <table>
+        <tr>
+            <td>
+                Урвуу фурье хувиргалт
+            </td>
+        </tr>
+        <tr>
             <td>
                 <canvas id="ifft"></canvas>
             </td>
         </tr>
-    </table>
+    </table><br />
 
     Жишээ:<br />
-    <img width="400" src="sample.png" /><br />
+    <img src="sample.jpg" style="max-width: 100%;"/><br />
 
     <h2>Хэрэглээ:</h2>
     <p>Үр дүнгийн захын хэсгүүдийг хассанаар (high pass) зургийн нарийн дитайл хэсгүүдийг хасч, бүрсийлгэх, хэмжээг багасгана.</p>
