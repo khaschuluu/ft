@@ -43,6 +43,11 @@
                 <canvas id="input"></canvas>
             </td>
         </tr>
+        <tr>
+            <td>
+                <button onclick="clearInput()">Цэвэрлэх</button>
+            </td>
+        </tr>
     </table>
     <table>
         <tr>
@@ -56,6 +61,13 @@
                     <canvas id="fft" style="vertical-align: top;"></canvas>
                     <canvas id="fftmask" style="position: absolute; top: 0; left: 0;"></canvas>
                 </span>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="highpass()">High pass</button>
+                <button onclick="lowpass()">Low pass</button>
+                <button onclick="clearMask()">Цэвэрлэх</button>
             </td>
         </tr>
     </table>
@@ -298,7 +310,8 @@
                     .forEach((c, i) => {
                         c.forEach((r, j) => {
                             if (r) {
-                                fftResult[(j + size/2) % size][(i + size/2) % size] = [0, 0];
+                                let c = fftResult[(j + size/2) % size][(i + size/2) % size];
+                                fftResult[(j + size/2) % size][(i + size/2) % size] = cnorm(c, r);
                             }
                         });
                     });
@@ -335,6 +348,55 @@
                     })
                 });
             }
+        }
+
+        // Зургийн дитайлууд буюу ирмэгүүдийг илрүүлэхийн тулд FFT үр дүнгийн их давтамжын мужийг маск тавиад устгана (багасгана)
+        function highpass() {
+            let x = fftCanvas.width/2,
+                y = fftCanvas.height/2,
+                innerRadius = 0,
+                outerRadius = x/50,
+                radius = x/50;
+
+            var gradient = ctxs.fftmask.createRadialGradient(x, y, innerRadius, x, y, outerRadius);
+            gradient.addColorStop(0, "rgba(0, 0, 0, .1");
+            gradient.addColorStop(1, "transparent");
+
+            ctxs.fftmask.arc(x, y, radius, 0, 2 * Math.PI);
+
+            ctxs.fftmask.fillStyle = gradient;
+            ctxs.fftmask.fill();
+            IFFT2D();
+        }
+
+        // Зургийн дитайл хэсгүүдийг хасч, ерөнхий хэсгийг үлдээн бүрсийлгэх
+        function lowpass() {
+            let x = fftCanvas.width/2,
+                y = fftCanvas.height/2,
+                innerRadius = 0,
+                outerRadius = x/5,
+                radius = Math.sqrt(fftCanvas.width**2 + fftCanvas.height**2);
+
+            var gradient = ctxs.fftmask.createRadialGradient(x, y, innerRadius, x, y, outerRadius);
+            gradient.addColorStop(0, "transparent");
+            gradient.addColorStop(1, "rgba(0, 0, 0, 1");
+
+            ctxs.fftmask.arc(x, y, radius, 0, 2 * Math.PI);
+
+            ctxs.fftmask.fillStyle = gradient;
+            ctxs.fftmask.fill();
+            IFFT2D();
+        }
+
+        function clearMask() {
+            ctxs.fftmask.clearRect(0, 0, fftmaskCanvas.width, fftmaskCanvas.height);
+            IFFT2D();
+        }
+
+        function clearInput() {
+            ctxs.input.clearRect(0, 0, inputCanvas.width, inputCanvas.height);
+            FFT2D();
+            IFFT2D();
         }
     </script>
 </body>
