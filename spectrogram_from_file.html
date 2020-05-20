@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спектрограм</title>
+</head>
+<body>
+    <h1>Дууны спектрограм</h1>
+    <p>Дуу авианы долгионыг фурье хувиргалтаар задалсанаар оролцож буй давтамжуудыг нь харах боломжтой.</p>
+    <p>Доорх аудио файлыг тоглуулсанаар тухайн аудионоос фурье хувиргалтын аргаар доорх зурагнууд зурагдаж байгаа болно</p>
+
+    <canvas width="600"></canvas><br />
+
+    <audio id="playback" src="sample.mp3" controls autoplay></audio><br />
+
+    <a href="spectrogram.html">Микрофоноос спектрограм зурах</a><br />
+    <a href="fourier_optic.html">Фурье оптик</a>
+
+    <script src="fft.js"></script>
+    <script src="spectrogram.js"></script>
+    <script>
+        // өгөгдлийг тасдаж авах урт
+        const proc_len = 2**10;
+
+        const canvas = document.querySelector("canvas");
+        // фурье хувиргалтаас давтамжийн мэдээллийг авахад өгөгдлийн уртын талаар гарч ирдэг тул canvas-ынхаа өндрийг өгөгдлийн урт буюу proc_len/2 болгох
+        canvas.height = parseInt(proc_len/2);
+
+        // audio элемэнт тоглогдож буй дууг өгөгдөл болгон авах
+        var playbackElement = document.getElementById("playback");
+        const ac = new AudioContext();
+        var source = ac.createMediaElementSource(playbackElement);
+        const processor = ac.createScriptProcessor(proc_len, 1, 1);
+        source.connect(processor);
+        processor.connect(ac.destination);
+        processor.onaudioprocess = (e) => {
+            // өгөгдлийг зураг функцруу өгөх
+            draw(e.inputBuffer.getChannelData(0), canvas);
+        };
+        source.connect(ac.destination);
+    </script>
+</body>
+</html>

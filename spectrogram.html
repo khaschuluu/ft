@@ -12,11 +12,20 @@
 
     <canvas width="1280"></canvas><br />
 
+    <a href="spectrogram_from_file.html">Файлаас спектрограм зурах</a><br />
     <a href="fourier_optic.html">Фурье оптик</a>
-    
+
     <script src="fft.js"></script>
+    <script src="spectrogram.js"></script>
     <script>
+        // өгөгдлийг тасдаж авах урт
         const proc_len = 2**10;
+
+        const canvas = document.querySelector("canvas");
+        // фурье хувиргалтаас давтамжийн мэдээллийг авахад өгөгдлийн уртын талаар гарч ирдэг тул canvas-ынхаа өндрийг өгөгдлийн урт буюу proc_len/2 болгох
+        canvas.height = parseInt(proc_len/2);
+
+        // микрофоноос ирэх өгөгдлийг боловсруулах
         const handleSuccess = (stream) => {
             const ac = new AudioContext();
             const source = ac.createMediaStreamSource(stream);
@@ -26,53 +35,13 @@
             processor.connect(ac.destination);
 
             processor.onaudioprocess = (e) => {
-                draw(e.inputBuffer.getChannelData(0));
+                // өгөгдлийг зураг функцруу өгөх
+                draw(e.inputBuffer.getChannelData(0), canvas);
             };
         };
 
+        // микрофоныг авч байна
         navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(handleSuccess);
-
-        const canvas = document.querySelector("canvas");
-        canvas.height = parseInt(proc_len/2);
-        const cc = canvas.getContext("2d");
-
-        let scan_pos = 0;
-
-        const color_number = 1280;
-        // maximum amplitude (avg ~100, max ~240)
-        const max = 100;
-        const pwr = color_number/Math.log(max+1);
-
-        cc.fillStyle = "rgb(0, 0, 0)";
-        cc.fillRect(0, 0, canvas.width, canvas.height);
-
-        const draw = (pcm) => {
-            let fft = FFT(pcm);
-            let fs = freqs(fft);
-
-            fs.forEach((a, i) => {
-                let s = Math.log(1+a)*pwr;
-                let color = colorCount(s);
-                cc.fillStyle = `rgb(${color.red}, ${color.green}, ${color.blue})`;
-                cc.fillRect(scan_pos, canvas.height - i, 1, 1);
-            });
-
-            scan_pos = (scan_pos + 1) % canvas.width;
-        }
-
-        // black    blue    cyan    green   yellow  red     magenta white
-        // 000000   0000ff  00ffff  00ff00  ffff00  ff0000  ff00ff  ffffff
-        //       256      256     256     256     256     256     256
-        // 0        256     512     778     1024    1280    1536    1792
-        // 256*7 = 1792
-
-        const colorCount = (n) => {
-            let red = n < 768 ? 0 : n < 1024 ? n-768 : 256;
-            let green = n < 256 ? 0 : n < 512 ? n-256 : n < 1024 ? 256 : n < 1280 ? 256-(n-1024) : 0;
-            let blue = n < 256 ? n : n < 512 ? 256 : n < 778 ? 256-(n-512) : 0;
-
-            return {red, green, blue};
-        }
     </script>
 </body>
 </html>
