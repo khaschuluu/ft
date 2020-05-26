@@ -113,7 +113,7 @@ const samps = (x) => x.map(scamp);
 // Давтамжууд 
 // Ор: x: [Комплекс]
 // Гар: [Тоо]
-const freqs = (x) => x.slice(0, x.length).map((c) => camp(c)*2);
+const freqs = (x) => x.slice(0, x.length/2).map((c) => camp(c)*2);
 
 // node.js дээр модул болгож дуудсан үед буцаах функцууд
 if (typeof exports !== 'undefined') {
