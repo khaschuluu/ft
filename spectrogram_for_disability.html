@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спектрограм</title>
+    <style>
+        body {
+            color: lightgrey;
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <h1>Хөгжлийн бэрхшээлийг спектрограмаар шийдвэрлэх туршилт</h1>
+    <p>Сонсголгүй хүмүүст хараагаар нь дамжуулж сонсох мэдрэмжийг, хараагүй хүмүүст сонсголоор нь дамжуулж харах мэдрэмжийг спектрограмын аргаар үүсгэх туршилтын ажил.</p>
+
+    <canvas id="ref" style="display:none;"></canvas><br />
+    <canvas id="led"></canvas><br />
+
+    <audio id="playback" src="statics/ufo.mp3" controls autoplay></audio><br />
+
+    <a href="spectrogram.html">Микрофоноос спектрограм зурах</a><br />
+    <a href="fourier_optic.html">Фурье оптик</a>
+
+    <script src="scripts/fft.js"></script>
+    <!-- <script src="scripts/spectrogram.js"></script> -->
+    <script>
+        // өгөгдлийг тасдаж авах урт
+        const proc_len = 2**10;
+
+        const canvas = document.querySelector("canvas#ref");
+        const ctx = canvas.getContext('2d');
+        const led = document.querySelector("canvas#led");
+        const ledctx = led.getContext('2d');
+        // фурье хувиргалтаас давтамжийн мэдээллийг авахад өгөгдлийн уртын талаар гарч ирдэг тул canvas-ынхаа өндрийг өгөгдлийн урт буюу proc_len/2 болгох
+        canvas.height = Math.floor(proc_len/2);
+
+        // гаралтыг өндрөөр нь хуваах
+        const led_height = 9;
+        const len_per_led = canvas.height/9;
+        const led_size = 30;
+        const led_space = 10;
+
+        led.height = led_height * (led_size + led_space);
+        led.width = led_height * (led_size + led_space);
+
+        const color_number = 1280;
+        // maximum amplitude (avg ~100, max ~240)
+        const max = 100;
+        const pwr = color_number/Math.log10(max);
+        // бага давтамжийг өргөнөөс их давтамжийг нарийхан зурахаараар логарифмик шатлалтай зурахад зориулсан хүч
+        const pwrheight = canvas.height/Math.log10(canvas.height);
+
+        let count = 1;
+
+        const draw = (pcm, canvas) => {
+            // canvas-ыг тэр чигт нь зүүн тийш 1 пикселээр зөөх
+            const canvasData = ctx.getImageData(1, 0, canvas.width, canvas.height);
+            ctx.putImageData(canvasData, 0, 0);
+
+            let fft = FFT(pcm);
+            let fs = freqs(fft);
+
+            fs.reverse().forEach((a, i) => {
+                let s = Math.log10(a+1)*pwr;
+                let h = Math.log10(canvas.height-i+1)*pwrheight;
+                let color = colorCount(s);
+                ctx.fillStyle = `rgb(${color.red}, ${color.green}, ${color.blue})`;
+                ctx.fillRect(canvas.width-1, canvas.height-h, 1, canvas.height);
+            });
+
+
+            // зурж дууссан канвасаа яг led-ийнхээ өндөрт хуваагаад, дискретчлэнэ
+
+            const ledData = ledctx.getImageData(led_size + led_space, 0, led.width, led.height);
+            ledctx.putImageData(ledData, 0, 0);
+
+            for (let i = 0; i < led_height; i += 1) {
+                const pix = ctx.getImageData(canvas.width-2, i*len_per_led, 1, len_per_led).data;
+                let avg = [0, 0, 0];
+                for (let j = 1; j <= pix.length/4; j += 1) {
+                    avg[0] = (avg[0] * (j-1) + pix[(j-1)*4])/j;
+                    avg[1] = (avg[1] * (j-1) + pix[(j-1)*4+1])/j;
+                    avg[2] = (avg[2] * (j-1) + pix[(j-1)*4+2])/j;
+                }
+
+                ledctx.fillStyle = `rgb(${avg[0]}, ${avg[1]}, ${avg[2]})`;
+                ledctx.fillRect(led.width-led_size, i*(led_size+led_space), led_size, led_size);
+            }
+        }
+
+        // black    blue    cyan    green   yellow  red     magenta white
+        // 000000   0000ff  00ffff  00ff00  ffff00  ff0000  ff00ff  ffffff
+        //       256      256     256     256     256     256     256
+        // 0        256     512     778     1024    1280    1536    1792
+        // 256*7 = 1792
+
+        const colorCount = (n) => {
+            let red = n < 768 ? 0 : n < 1024 ? n-768 : 256;
+            let green = n < 256 ? 0 : n < 512 ? n-256 : n < 1024 ? 256 : n < 1280 ? 256-(n-1024) : 0;
+            let blue = n < 256 ? n : n < 512 ? 256 : n < 778 ? 256-(n-512) : 0;
+
+            return {red, green, blue};
+        }
+
+        // audio элемэнт тоглогдож буй дууг өгөгдөл болгон авах
+        const playbackElement = document.getElementById("playback");
+        const ac = new AudioContext();
+        const source = ac.createMediaElementSource(playbackElement);
+        const processor = ac.createScriptProcessor(proc_len, 1, 1);
+        source.connect(processor);
+        processor.connect(ac.destination);
+        processor.onaudioprocess = (e) => {
+            // өгөгдлийг зураг функцруу өгөх
+            draw(e.inputBuffer.getChannelData(0), canvas);
+        };
+        source.connect(ac.destination);
+    </script>
+</body>
+</html>
