@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спектрограм</title>
+    <style>
+        body {
+            color: lightgrey;
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <h1>Үргэлжилсэн спектрограм</h1>
+    <p>Спектрограм нь багагүй тооцоолол шаарддаг тул бодит цаг хугацаанд, жишээ нь микрофоноос орж ирэх өгөгдлийг шууд тооцоолохын тулд өгөгдлөө таслаж, тус тусад нь хувиргалт хийдэг.</p>
+    <p>Таслалгүй, үргэлжилсэн хувиргалт хийхийн тулд маш хүчтэй тооцоолуур, ухаалаг алгоритм хэрэг болно. Эсвэл урьдчилан бичигдсэн бичлэгийг удаан хугацаанд боловсруулж болно.</p>
+    <p>Энэ үзүүлэнгээр богино хэмжээний файлыг үргэлжилсэн аргаар хувиргах болно. Үргэлжилсэн спектрограм нь илүү нарийн мэдээллийг агуулж байдаг. Тэр дундаа ийм спектрограмыг зураг таних хиймэл оюунтай хослуулан ашигласнаар яриаг таньж бичвэр болгох, бичвэрийг яриа болгох зэрэг орчин үеийн технологиудад ашигладаг.</p>
+
+    <canvas id="ref" width="1800"></canvas><br />
+
+    <!-- ямар дууг хувиргаж байгааг сонсуулах зорилгоор хийв, хувиргалтад хамаагүй -->
+    <audio id="playback" src="statics/speech.ogg" controls autoplay></audio><br />
+
+    <a href="spectrogram.html">Микрофоноос спектрограм зурах</a><br />
+    <a href="fourier_optic.html">Фурье оптик</a>
+
+    <script src="scripts/fft.js"></script>
+    <script src="scripts/spectrogram.js"></script>
+    <script>
+        // өгөгдлийг тасдаж авах урт
+        const proc_len = 2**10;
+
+        const canvas = document.querySelector("canvas");
+        const ctx = canvas.getContext('2d');
+        // фурье хувиргалтаас давтамжийн мэдээллийг авахад өгөгдлийн уртын талаар гарч ирдэг тул canvas-ынхаа өндрийг өгөгдлийн урт буюу proc_len/2 болгох
+        canvas.height = Math.floor(proc_len/2);
+
+        // зурахдаа алхам алхмаар зурахад зориулан гүйх заагч
+        let cursor = 0;
+        // алхам хоорондын зай
+        const step = 200;
+
+        // аудиогоос орж ирэх бүх өгөгдлийг хадаглана
+        let data;
+
+        // аудио файлаа уншиж байна
+        var request = new XMLHttpRequest();
+        request.open('GET', 'statics/speech.ogg', true);
+        request.responseType = 'arraybuffer';
+
+        request.onload = function () {
+            var audioData = request.response;
+
+            var audioCtx = new AudioContext();
+            audioCtx.decodeAudioData(audioData, function (buffer) {
+                data = buffer.getChannelData(0);
+                drawer();
+            }, console.error);
+        }
+
+        request.send();
+
+        // спектрограм зурах draw() функцыг алхам алхмаар дуудна
+        const drawer = () => {
+            draw(data.slice(cursor, cursor+proc_len), canvas);
+
+            // заагчийг дараагийн алхамруу шилжүүлж байна
+            cursor += step;
+
+            // файлыг уншиж дуусахад зогсох ёстой
+            if (cursor < data.length-proc_len) {
+                // энэ функц нь дэлгэцэн дээр хэвлэж дуусахыг хүлээнэ
+                // дууссан бол өөрийгөө дахиж дуудаж дараагийн алхамруу орно
+                requestAnimationFrame(drawer);
+            }
+        }
+    </script>
+</body>
+</html>
