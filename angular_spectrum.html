@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Өнцгийн спектрум</title>
+    <style>
+        body {
+            background-color: black;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.querySelector("#canvas");
+        const context = canvas.getContext("2d");
+
+        const input = [0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0];
+        const output = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        const wavelength = 2;
+        const z = 5;
+        const barwidth = 10;
+
+        output.map((o, l) => {
+            let a = 0;
+            let p = 0;
+            input.forEach((i, k) => {
+                if (i) {
+                    p += Math.sin((Math.sqrt(z**2 + Math.abs(l-k)**2) % wavelength)*Math.PI);
+                    a += Math.sin((Math.sqrt(z**2 + Math.abs(l-k)**2) % wavelength)*Math.PI);
+                }
+            });
+            console.log(a);
+            context.fillStyle = `rgb(255, 255, 255, ${a/4})`;
+            context.fillRect(l*barwidth, 0, l*barwidth+barwidth, canvas.height);
+        });
+    </script>
+</body>
+</html>
