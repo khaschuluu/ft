@@ -68,10 +68,11 @@
         </tr>
         <tr>
             <td>
-                Тархаах
-                <button onclick="time-=step;IFFT2D();">&larr;</button>
-                <input type="number" value=".1" style="width:50px;" onchange="window.step=parseFloat(event.target.value);" />
-                <button onclick="time+=step;IFFT2D();">&rarr;</button>
+                z:
+                <input type="number" value="0" style="width:50px;" step="0.01" onchange="window.time=parseFloat(event.target.value);IFFT2D();" /><br />
+                &lambda;:
+                <input type="number" value="1" style="width:50px;" onchange="window.lambda=parseFloat(event.target.value);" /><br />
+                <button onclick="IFFT2D();">Тархаах</button>
             </td>
         </tr>
     </table><br />
@@ -85,14 +86,14 @@
     <script>
         // 2D квадрат зурагны талын урт
         // 2^n байх ёстой
-        const size = 2**8;
+        const size = 2**9;
 
         // Долгионы хурд
         const v = 1;
 
         // Долгионы тархалтын анимац хийх хугацаа
-        let time = 0;
-        window.step = .1;
+        window.time = 0;
+        window.lambda = 1;
 
         // FFT хувиргалтын комплекс хариултыг IFFT хийхэд зориулан хадаглах сав
         let fftResult;
@@ -273,8 +274,14 @@
                     const amp = Math.sqrt(col[1]**2 + col[0]**2);
                     const kx = x <= arr.length/2-1 ? x : ((arr.length-1-x)*-1);
                     const ky = y <= arr.length/2-1 ? y : ((arr.length-1-y)*-1);
+                    const lambda = 660;
+                    const dpi = 600;
+                    const sizeininch = arr.length/dpi;
+//                     const b = lambda*dpi; //TODO
+                    const b = window.lambda;
+                    // k = (2*Math.PI)/lambda
                     const k = Math.sqrt(kx**2 + ky**2);
-                    const w = k*v;
+                    const w = b*k*v;
                     const theta = phi + w*t;
                     // const itheta = phi - w*t;
                     return [
@@ -293,7 +300,7 @@
         function IFFT2D() {
             if (fftResult) {
                 // Давтамжуудыг тархаах
-                propagated = propagate(fftResult, time);
+                propagated = propagate(fftResult, window.time);
 
                 let ifftResult = propagated
                     // багна бүр дээр IFFT буюу урвуу фурье хувиргалт хийнэ
