@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFT</title>
+    <style>
+        body {
+            color: lightgrey;
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <h1>Дискрет Фурье Хувиргалт</h1>
+
+    Урт <input type="range" min="0" max="10" value="8" id="proc" /> 2<sup id="pow">8</sup>=<b id="procEq">1024</b><br />
+    Давтамж <input type="range" min="0" max="30" value="6" id="freq" /> <b id="eq">6</b>
+
+    <div class="chart-container" style="position: relative; margin: 0 50px;">
+        <canvas id="inChart"></canvas>
+    </div>
+    <div class="chart-container" style="position: relative; margin: 0 50px;">
+        <canvas id="outChart"></canvas>
+    </div>
+ 
+    <script src="scripts/fft.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
+    <script>
+        // өгөгдлийг тасдаж авах урт
+        let proc_len = 2**8;
+        let freq = 6;
+        let a = Array(proc_len).fill(0);
+        a = a.map((aa, i) => i%freq==0 ? 1 : 0);
+        let b = FFT(a);
+
+        var inctx = document.getElementById('inChart');
+
+        let inputChart = new Chart(inctx, {
+            type: 'line',
+            data: {
+                labels: [...Array(proc_len).keys()],
+                datasets: [{
+                    label: 'Өгөгдөл',
+                    borderColor: 'white',
+                    borderWidth: 2,
+                    data: a,
+                }]
+            },
+            options: {
+                responsive: true,
+                aspectRatio: 8,
+            }
+        });
+
+        var outctx = document.getElementById('outChart').getContext('2d');
+
+        let outputChart = new Chart(outctx, {
+            type: 'line',
+            data: {
+                labels: [...Array(proc_len).keys()],
+                datasets: [{
+                    label: 'Фурье хувиргалт (амплитуд)',
+                    borderColor: 'white',
+                    borderWidth: 2,
+                    data: b.map((c) => Math.sqrt(c[0]**2 + c[1]**2)),
+                }]
+            },
+            options: {
+                responsive: true,
+                aspectRatio: 8,
+            }
+        });
+
+        const draw = () => {
+            a = Array(proc_len).fill(0);
+            a = a.map((aa, i) => (i+1)%(freq+1)==0 ? 1 : 0);
+            b = FFT(a);
+
+            inputChart.data.labels = [...Array(proc_len).keys()];
+            inputChart.data.datasets[0].data = a;
+            inputChart.update();
+
+            outputChart.data.labels = [...Array(proc_len).keys()];
+            outputChart.data.datasets[0].data = b.map((c) => Math.sqrt(c[0]**2 + c[1]**2));
+            outputChart.update();
+        }
+
+        document.getElementById('proc').addEventListener('input', function() {
+            document.getElementById('pow').innerHTML = this.value;
+            document.getElementById('procEq').innerHTML = 2**this.value;
+            proc_len = 2**parseInt(this.value);
+        });
+
+        document.getElementById('proc').addEventListener('change', draw);
+
+        document.getElementById('freq').addEventListener('input', function() {
+            document.getElementById('eq').innerHTML = this.value;
+            freq = parseInt(this.value);
+        });
+
+        document.getElementById('freq').addEventListener('change', draw);
+    </script>
+</body>
+</html>
