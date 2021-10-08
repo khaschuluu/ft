@@ -74,7 +74,7 @@
 
         const draw = () => {
             a = Array(proc_len).fill(0);
-            a = a.map((aa, i) => (i+1)%(freq+1)==0 ? 1 : 0);
+            a = a.map((aa, i) => i%freq==0 ? 1 : 0);
             b = FFT(a);
 
             inputChart.data.labels = [...Array(proc_len).keys()];
