@@ -23,8 +23,7 @@
     <p>Уг аргыг хугацааг нь сөрөгөөр буюу ухрахаараар өгч долгионыг гэдрэг тархаан, долгионы үүсгүүр буюу апартурын зургийг олох байдлаар линзгүй голографик микроскоп хийх боломжтой.</p>
 
     <lable for="image">Зураг оруулах:</lable>
-    <input id="image" type="file" />
-    (<a href="statics/worm_inline_hologram.png">жишээ голограм</a>)<br />
+    <input id="image" type="file" /><br />
 
     <table>
         <tr>
@@ -76,6 +75,9 @@
         </tr>
     </table><br />
 
+    Жишээ голограм:<br />
+    <img src="statics/hologram_string.png" /><img src="statics/worm_inline_hologram.png" /> <img src="statics/hologram_pointy.jpg" /><br />
+
     Жишээ:<br />
     <img src="statics/sample_angular_spectrum.png" /><br />
 
@@ -88,7 +90,7 @@
         const size = 2**8;
 
         // Долгионы хурд
-        const v = 1;
+        const v = 0.01;
 
         // Долгионы тархалтын анимац хийх хугацаа
         let time = 0;
@@ -271,10 +273,11 @@
                 if (col[0] || col[1]) {
                     const phi = Math.atan2(col[1],col[0]);
                     const amp = Math.sqrt(col[1]**2 + col[0]**2);
-                    const kx = x <= arr.length/2-1 ? x : ((arr.length-1-x)*-1);
-                    const ky = y <= arr.length/2-1 ? y : ((arr.length-1-y)*-1);
+                    const kx = x <= arr.length/2-1 ? x : -(arr.length-1-x);
+                    const ky = y <= arr.length/2-1 ? y : -(arr.length-1-y);
                     const k = Math.sqrt(kx**2 + ky**2);
-                    const w = k*v;
+                    // const w = v*k; // for 2D
+                    const w = v*k**2; // for 3D
                     const theta = phi + w*t;
                     // const itheta = phi - w*t;
                     return [
